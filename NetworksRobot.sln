@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetworksRobot", "NetworksRobot\NetworksRobot.vcxproj", "{E466AA60-F617-43A7-9C5E-D597142348F1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetworksRobotTESTING", "NetworksRobotTESTING\NetworksRobotTESTING.vcxproj", "{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DE80269B-997A-4B76-B167-9487FE220DAB}"
+	ProjectSection(SolutionItems) = preProject
+		README.txt = README.txt
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Debug|x64.ActiveCfg = Debug|x64
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Debug|x64.Build.0 = Debug|x64
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Debug|x86.ActiveCfg = Debug|Win32
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Debug|x86.Build.0 = Debug|Win32
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Release|x64.ActiveCfg = Release|x64
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Release|x64.Build.0 = Release|x64
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Release|x86.ActiveCfg = Release|Win32
+		{E466AA60-F617-43A7-9C5E-D597142348F1}.Release|x86.Build.0 = Release|Win32
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Debug|x64.ActiveCfg = Debug|x64
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Debug|x64.Build.0 = Debug|x64
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Debug|x86.ActiveCfg = Debug|Win32
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Debug|x86.Build.0 = Debug|Win32
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Release|x64.ActiveCfg = Release|x64
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Release|x64.Build.0 = Release|x64
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Release|x86.ActiveCfg = Release|Win32
+		{A8C438E5-D324-43D9-9679-D5A5C87E9FA6}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

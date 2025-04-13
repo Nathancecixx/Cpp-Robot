@@ -18,9 +18,15 @@
     <ClInclude Include="PktDef.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MySocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PktDef.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MySocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -127,9 +127,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MySocket.h" />
     <ClInclude Include="PktDef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MySocket.cpp" />
     <ClCompile Include="PktDef.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

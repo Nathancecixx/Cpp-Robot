@@ -1,4 +1,7 @@
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 #include "crow_all.h"
 #include "PktDef.h"
@@ -10,7 +13,8 @@ int robotPort = 0;
 
 int pktCount = 0;
 
-
+//Struct to hold telem data
+#pragma pack(push,1)
 struct TelemData {
     uint16_t LastPktCounter;
     uint16_t CurrentGrade;
@@ -19,20 +23,28 @@ struct TelemData {
     uint8_t LastCmdValue;
     uint8_t LastCmdSpeed;
 };
+#pragma pack(pop) 
 
+//Helper function to read files into string buffers
+std::string readFile(const std::string& path) {
+    std::ifstream in(path);
+    if (!in)
+        return "404 Not Found";
+    std::ostringstream contents;
+    contents << in.rdbuf();
+    return contents.str();
+}
 
 int main() {
     crow::SimpleApp app;
 
-    CROW_ROUTE(app, "/")([](){
+    CROW_ROUTE(app, "/")
+    ([](){
         //Return the robot control UI
-        std::ifstream file("../public/robot_control_gui.html");
-        if (!file.is_open()) 
-            return crow::response(500, "Failed to open robot_control_gui.html");
+        crow::response res(readFile("../public/robot_control_gui.html"));
+        res.set_header("Content-Type", "text/html");
+        return res;
 
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        return crow::response{buffer.str()};
     });
 
     CROW_ROUTE(app, "/connect").methods("POST"_method)
@@ -94,66 +106,70 @@ int main() {
     });
 
     CROW_ROUTE(app, "/telementry_request/").methods("GET"_method)
-    ([](const crow::request& req, crow::response& res){
-        //Send response packet
-        PktDef pkt;
-        pkt.SetCmd(RESPONSE);
-        pkt.SetPktCount(++pktCount);
-        pkt.SetBodyData(nullptr, 0);
-        char* buffer = pkt.GenPacket();
-        pkt.CalcCRC();
-        udpSocket->SendData(buffer, pkt.GetLength());
+    ([&](const crow::request&, crow::response& res) {
+        if (!udpSocket) { res.code = 500; return res.end(); }
 
-
-        //Create recieve buffer
-        char recvBuffer[1024];
-        int bytes = udpSocket->GetData(recvBuffer);
-        PktDef response;
-
-        //Skip over any ACK 
-        do {
-            bytes = udpSocket->GetData(recvBuffer);
-            //Invalid basic packet size
-            if (bytes < HEADERSIZE + CRCSIZE){
-                res.code = 500;
-                return res.end();
+        //Send status Request
+        PktDef req;
+        req.SetCmd(RESPONSE);
+        req.SetPktCount(++pktCount);
+        req.SetBodyData(nullptr, 0);
+        char* out = req.GenPacket();
+        req.CalcCRC();
+        udpSocket->SendData(out, req.GetLength());
+    
+        //Read packets until we get response
+        char rxBuf[1024];
+        int  nBytes;
+        std::unique_ptr<PktDef> pkt;
+        while (true) {
+            nBytes = udpSocket->GetData(rxBuf);
+            if (nBytes < HEADERSIZE + CRCSIZE) { 
+                res.code = 500; 
+                return res.end(); 
             }
-            response = PktDef(recvBuffer);
-        } while(response.GetAck());
-
-        //Check command type of incoming packet
-        if(response.GetCmd() == RESPONSE){
-            std::cout << "Status Recieved!!!" << std::endl;
+            pkt.reset(new PktDef(rxBuf));
+            if (!pkt->GetAck()) break;
         }
-
-        //Make sure recieved packet is correct size
-        int needed = response.GetLength();
-        if(bytes < needed){
-            res.code = 500;
-            res.write(R"({"error":"Incomplete packet"})");
-            res.set_header("Content-Type","application/json");
-            res.end();
-            return;
+    
+        //Ensure command is response
+        if (pkt->GetCmd() != RESPONSE) { 
+            res.code = 400; 
+            return res.end(); 
         }
-
-        //Make sure body data is there and the correct size
-        auto body = response.GetBodyData();
-        int bodySize = needed - (HEADERSIZE + CRCSIZE);
-        if(!body || bodySize < sizeof(TelemData)){
-            res.code = 500;
-            res.write(R"({"error":"Incomplete packet"})");
-            res.set_header("Content-Type","application/json");
-            res.end();
-            return;
+    
+        //Copy packet data into telem struct
+        int bodyBytes = pkt->GetLength() - (HEADERSIZE + CRCSIZE);
+        if (bodyBytes < static_cast<int>(sizeof(TelemData))) {
+            res.code = 500; return res.end();
         }
-        
-        //Copy data into telem struct
-        TelemData data;
-        std::memcpy(&data, body, sizeof(TelemData));
-        std::cout << "Got telemetry: lastPkt=" << data.LastPktCounter << std::endl;
+        TelemData telem;
+        std::memcpy(&telem, pkt->GetBodyData(), sizeof(TelemData));
+    
+        //Parse telem data
+        crow::json::wvalue j{
+            {"lastPktCounter", telem.LastPktCounter},
+            {"currentGrade",   telem.CurrentGrade},
+            {"hitCount",       telem.HitCount},
+            {"lastCmd",        telem.LastCmd},
+            {"lastCmdValue",   telem.LastCmdValue},
+            {"lastCmdSpeed",   telem.LastCmdSpeed}
+        };
 
+        //Return json with data
+        res.set_header("Content-Type", "application/json");
+        res.write(j.dump());
         res.end();
     });
+
+    //Route for getting images from server
+    CROW_ROUTE(app, "/images/<string>")
+    ([](const crow::request& req, crow::response& res, std::string filename) {
+        res.set_header("Content-Type", "image/png");
+        res.write(readFile("../public/resources/" + filename));
+        res.end();
+    });
+    
 
     app.port(18080).multithreaded().run();
 }

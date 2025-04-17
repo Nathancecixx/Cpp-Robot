@@ -13,15 +13,15 @@
 
 #pragma pack(push, 1) 
 struct Header {
-	uint16_t PktCount; // 2 bytes
+	uint16_t PktCount; //2 bytes (current count)
 
-	uint8_t Flags;	// bit‑0 Drive
-					// bit‑1 Status
-					// bit‑2 Sleep
-					// bit‑3 Ack
-					// bit‑4..7 = 0
+	uint8_t Flags;	//bit‑0 Drive
+					//bit‑1 Status
+					//bit‑2 Sleep
+					//bit‑3 Ack
+					//bit‑4..7 = 0
 
-	uint8_t Length; // 1 byte (total packet bytes)
+	uint8_t Length; //1 byte (total packet bytes)
 };
 #pragma pack(pop)
 

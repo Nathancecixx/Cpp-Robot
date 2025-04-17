@@ -2,7 +2,7 @@
 #include "PktDef.h"
 
 
-
+//Helper function to sum bits in a buffer
 int PktDef::SumPacketBits(char* src, int size) {
 	int BitCount = 0;
 	for (int i = 0; i < size; i++) {
@@ -25,6 +25,7 @@ PktDef::PktDef() {
 	this->RawBuffer = nullptr;
 	this->packet.CRC = 0;
 }
+
 PktDef::PktDef(char* src) : RawBuffer(nullptr) {
 	//Extract header from buffer
 	std::memcpy(&this->packet.header, src, HEADERSIZE);
@@ -45,9 +46,9 @@ PktDef::PktDef(char* src) : RawBuffer(nullptr) {
 
 //R
 CmdType PktDef::GetCmd() {
-	return (this->packet.header.Flags & DRIVE_BIT)  ? DRIVE   :
-	(this->packet.header.Flags & SLEEP_BIT)  ? SLEEP   :
-										RESPONSE ;
+	return  (this->packet.header.Flags & DRIVE_BIT)  ? DRIVE   :
+		    (this->packet.header.Flags & SLEEP_BIT)  ? SLEEP   :
+													  RESPONSE ;
 }
 bool PktDef::GetAck() {
 	return packet.header.Flags & ACK_BIT;
@@ -67,10 +68,12 @@ void PktDef::SetCmd(CmdType type) {
 	//Reset current header command type
 	this->packet.header.Flags &= ~(DRIVE_BIT|STATUS_BIT|SLEEP_BIT);
 
+	//Set selected command type
     if 		(type == DRIVE)    	packet.header.Flags |= DRIVE_BIT;
     else if (type == SLEEP) 	packet.header.Flags |= SLEEP_BIT;
     else                		packet.header.Flags |= STATUS_BIT;
 }
+
 void PktDef::SetBodyData(char* source, int size) {
 	//Delete old data if any
 	if (this->packet.Data)
@@ -103,13 +106,11 @@ bool PktDef::CheckCRC(char* source, int size) {
 void PktDef::CalcCRC() {
 	int PacketSize = this->packet.header.Length - CRCSIZE;
 	int BitSum = this->SumPacketBits(this->RawBuffer, PacketSize);
-	// store as 1‑byte value, wrap if >255
+	//Store as 1 byte value, wrap if >255
     packet.CRC = static_cast<unsigned char>(BitSum & 0xFF);
-
-    // write it into the serialised buffer
+    //Write it into the already serialised buffer
     RawBuffer[PacketSize] = packet.CRC;
 }
-
 
 char* PktDef::GenPacket() {
 	//Get the size of the body
@@ -135,7 +136,6 @@ char* PktDef::GenPacket() {
 }
 
 //D
-
 PktDef::~PktDef() {
 	if (this->RawBuffer)
 		delete[] this->RawBuffer;

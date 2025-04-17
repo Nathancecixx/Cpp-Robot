@@ -4,115 +4,212 @@
   <meta charset="UTF-8" />
   <title>Robot Command & Control</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
-    :root {
-      /* theme */
-      --brand: #0066ff;
-      --brand-dark: #0047b3;
-      --bg: #f5f7fa;
-      --surface: #ffffff;
-      --text: #222;
-      --muted: #666;
-      --radius: 8px;
-      --ease: 220ms ease;
+    /* ---------- 1. THEME TOKENS ---------- */
+    :root{
+      /* Rocket League palette (Blue vs Orange) */
+      --rl-blue:   #00aeff;
+      --rl-blue-dark:#0064d7;
+      --rl-orange: #ff7a00;
+      --rl-orange-dark:#c75e00;
+
+      /* neutrals / surfaces */
+      --surface-dark:rgba(255,255,255,0.06);
+      --surface-light:rgba(255,255,255,0.12);
+      --text-main:#e7f2ff;
+      --text-muted:#8aa7c4;
+
+      --radius:12px;
+      --ease:240ms cubic-bezier(.4,0,.2,1);
     }
 
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
+    /* ---------- 2. RESET ---------- */
+    *,*::before,*::after{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:'Rajdhani',system-ui,sans-serif;
+      background:#05070e;             /* fallback for browsers that don’t support gradients */
+      background:
+        radial-gradient(at 30% 40%, rgba(0,174,255,.15) 0%, transparent 60%),
+        radial-gradient(at 80% 30%, rgba(255,122,0,.10) 0%, transparent 55%),
+        linear-gradient(145deg,#05070e 0%, #081020 100%);
+      min-height:100dvh;
+      color:var(--text-main);
+      line-height:1.5;
     }
 
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
+    h1,h2{margin:0 0 .6rem;letter-spacing:.5px;font-weight:600;color:#fff;text-transform:uppercase;}
+    h1{font-size:clamp(1.7rem,3.5vw+1rem,2.6rem);text-align:center;padding-top:1.5rem;}
+    h2{font-size:1.2rem;}
+
+    /* ---------- 3. LAYOUT ---------- */
+    .container{
+      width:min(960px,90%);
+      margin:2rem auto 4rem;
+      display:grid;
+      gap:1.5rem;
     }
 
-    h1 {
-      text-align: center;
-      margin: 1.2rem 0;
-      font-size: clamp(1.6rem, 3vw + 1rem, 2.2rem);
+    .card{
+      background:var(--surface-dark);
+      border:1px solid var(--surface-light);
+      border-radius:var(--radius);
+      padding:1.6rem 1.8rem;
+      backdrop-filter:blur(8px);
+      box-shadow:0 0 18px rgba(0,0,0,.35);
     }
 
-    .container {
-      width: min(960px, 90%);
-      margin-inline: auto;
-      display: grid;
-      gap: 1.25rem;
+    .grid-2{
+      display:grid;
+      gap:.9rem 1.4rem;
+      grid-template-columns:1fr 1fr;
     }
 
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+    /* ---------- 4. FORM ELEMENTS ---------- */
+    label{
+      font-size:.83rem;
+      text-transform:uppercase;
+      color:var(--text-muted);
+      margin-bottom:.15rem;
+      display:block;
     }
 
-    .grid-2 {
-      display: grid;
-      gap: 0.75rem 1.25rem;
-      grid-template-columns: 1fr 1fr;
+    input,select{
+      width:100%;
+      padding:.55rem .65rem;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.04);
+      color:var(--text-main);
+      /*color:#9cd8ff;*/
+      border-radius:var(--radius);
+      font-size:1rem;
+      outline:transparent;
+      transition:border var(--ease),background var(--ease);
+    }
+    input:focus,select:focus{
+      border-color:var(--rl-blue);
+      background:rgba(255,255,255,.07);
     }
 
-    label {
-      font-size: 0.875rem;
-      color: var(--muted);
-      display: block;
-      margin-bottom: 0.25rem;
+    /* custom slider */
+    input[type=range]{
+      -webkit-appearance:none;
+      background:transparent;
+      height:2px;
+    }
+    input[type=range]::-webkit-slider-runnable-track{
+      height:6px;border-radius:3px;
+      background:linear-gradient(90deg,var(--rl-orange) 80%,var(--surface-light) 80%);
+    }
+    input[type=range]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+      background:#fff;border:3px solid var(--rl-orange);
+      transform:translateY(-6px);
+      cursor:pointer;transition:border var(--ease),background var(--ease);
+    }
+    input[type=range]:focus::-webkit-slider-thumb{border-color:#fff;background:var(--rl-orange);}
+
+    /* ---------- 5. BUTTONS ---------- */
+    button{
+      border:none;
+      position:relative;
+      z-index:0;
+      padding:.65rem 1.6rem;
+      min-width:130px;
+      font-size:1rem;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      color:#fff;
+      border-radius:var(--radius);
+      cursor:pointer;
+      background:linear-gradient(135deg,var(--rl-blue) 0%,var(--rl-blue-dark) 100%);
+      overflow:hidden;
+      transition:transform .18s ease;
+    }
+    button::before{               /* subtle neon edge */
+      content:'';
+      position:absolute;inset:0;
+      border-radius:inherit;
+      padding:2px;
+      background:linear-gradient(130deg,var(--rl-blue) 0%,var(--rl-orange) 100%);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;
+      opacity:.45;
+      pointer-events:none;
+    }
+    button:hover{transform:translateY(-2px);}
+    button:hover::before{opacity:.9;}
+    button:active{transform:translateY(0);}
+
+    /* secondary (orange) variant – used via .alt class */
+    button.alt{background:linear-gradient(135deg,var(--rl-orange) 0%,var(--rl-orange-dark) 100%);}
+    button.alt::before{background:linear-gradient(130deg,var(--rl-orange) 0%,var(--rl-blue) 100%);}
+
+    .actions{display:flex;gap:.9rem;flex-wrap:wrap;}
+
+    /* ---------- 6. CODE / TELEMETRY BOXES ---------- */
+    #responseBox,#telemetryBox{
+      white-space:pre-wrap;
+      background:rgba(0,0,0,.55);
+      border:1px solid var(--surface-light);
+      border-radius:var(--radius);
+      padding:.9rem 1.1rem;
+      font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+      font-size:.9rem;
+      min-height:80px;
+      color:#9cd8ff;
     }
 
-    input,
-    select {
-      width: 100%;
-      padding: 0.55rem 0.6rem;
-      border: 1px solid #ccd;
-      border-radius: var(--radius);
-      font-size: 0.95rem;
+    /* ---------- 7. SMALL SCREEN TWEAKS ---------- */
+    @media(max-width:600px){
+      .grid-2{grid-template-columns:1fr;}
+      button{width:100%;}
     }
 
-    input[type="range"] {
-      padding: 0;
+    /* --- Rocket League brand header --- */
+    .page-brand{
+      display:flex;
+      align-items:center;
+      justify-content:center;      /* centers logo+title horizontally */
+      gap:1.25rem;
+      padding:2.2rem 0 0;          /* top gap; no bottom gap needed */
     }
 
-    button {
-      border: none;
-      background: var(--brand);
-      color: #fff;
-      padding: 0.6rem 1.2rem;
-      border-radius: var(--radius);
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background var(--ease);
+    .rl-logo{
+      width:110px;                 /* adjust to taste */
+      height:auto;
+      flex-shrink:0;               /* stop flex from squashing logo */
+      filter:drop-shadow(0 0 5px rgba(0,174,255,.45));
     }
 
-    button:hover {
-      background: var(--brand-dark);
+    /* remove the old global padding‑top on h1 */
+    h1{
+      font-size:clamp(1.7rem,3.5vw+1rem,2.6rem);
+      padding-top:0;               /* NEW */
+      text-transform:uppercase;
+      color:#fff;
+      letter-spacing:.5px;
+      margin:0;                    /* let .page-brand handle spacing */
     }
 
-    .actions {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+    /* ensure small screens stack nicely */
+    @media(max-width:480px){
+      .page-brand{
+        flex-direction:column;
+        gap:.7rem;
+      }
     }
 
-    #responseBox,
-    #telemetryBox {
-      white-space: pre-wrap;
-      background: #eef1ff;
-      border: 1px solid #dae1ff;
-      border-radius: var(--radius);
-      padding: 0.75rem 1rem;
-      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: 0.85rem;
-      min-height: 70px;
-    }
+
   </style>
 </head>
 <body>
-  <h1>Robot Command & Control GUI</h1>
+  <header class="page-brand">
+    <img src="images/RocketLeagueLogo.png" alt="Rocket League Logo" class="rl-logo">
+    <h1>Robot Command&nbsp;&nbsp;Control GUI</h1>
+  </header>
   <main class="container">
     <!-- Connection -->
     <section class="card">

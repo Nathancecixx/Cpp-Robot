@@ -18,23 +18,19 @@ int PktDef::SumPacketBits(char* src, int size) {
 
 //C
 PktDef::PktDef() {
-	this->packet.header.Ack = 0;
-	this->packet.header.Drive = 0;
-	this->packet.header.Length = 0;
-	this->packet.header.Padding = 0;
 	this->packet.header.PktCount = 0;
-	this->packet.header.Sleep = 0;
-	this->packet.header.Status = 0;
+	this->packet.header.Flags = 0;
+	this->packet.header.Length = 0;
 	this->packet.Data = nullptr;
 	this->RawBuffer = nullptr;
 	this->packet.CRC = 0;
 }
-PktDef::PktDef(char* src) {
+PktDef::PktDef(char* src) : RawBuffer(nullptr) {
 	//Extract header from buffer
 	std::memcpy(&this->packet.header, src, HEADERSIZE);
 
+	//Copy body into buffer
 	int BodySize = this->packet.header.Length - HEADERSIZE - CRCSIZE;
-
 	if (BodySize > 0) {
 		this->packet.Data = new char[BodySize];
 		std::memcpy(this->packet.Data, src + HEADERSIZE, BodySize);
@@ -49,19 +45,12 @@ PktDef::PktDef(char* src) {
 
 //R
 CmdType PktDef::GetCmd() {
-	if (this->packet.header.Drive)
-		return DRIVE;
-	else if (this->packet.header.Sleep)
-		return SLEEP;
-	else if (this->packet.header.Status)
-		return RESPONSE;
-	//Default return
-	return RESPONSE;
+	return (this->packet.header.Flags & DRIVE_BIT)  ? DRIVE   :
+	(this->packet.header.Flags & SLEEP_BIT)  ? SLEEP   :
+										RESPONSE ;
 }
 bool PktDef::GetAck() {
-	if (this->packet.header.Ack == 1)
-		return true;
-	return false;
+	return packet.header.Flags & ACK_BIT;
 }
 int PktDef::GetLength() {
 	return this->packet.header.Length;
@@ -76,21 +65,11 @@ int PktDef::GetPktCount() {
 //U
 void PktDef::SetCmd(CmdType type) {
 	//Reset current header command type
-	this->packet.header.Drive = 0;
-	this->packet.header.Sleep = 0;
-	this->packet.header.Status = 0;
+	this->packet.header.Flags &= ~(DRIVE_BIT|STATUS_BIT|SLEEP_BIT);
 
-	switch (type) {
-	case DRIVE:
-		this->packet.header.Drive = 1;
-		break;
-	case SLEEP:
-		this->packet.header.Sleep = 1;
-		break;
-	case RESPONSE:
-		this->packet.header.Status = 1;
-		break;
-	}
+    if 		(type == DRIVE)    	packet.header.Flags |= DRIVE_BIT;
+    else if (type == SLEEP) 	packet.header.Flags |= SLEEP_BIT;
+    else                		packet.header.Flags |= STATUS_BIT;
 }
 void PktDef::SetBodyData(char* source, int size) {
 	//Delete old data if any
@@ -101,9 +80,9 @@ void PktDef::SetBodyData(char* source, int size) {
 	if (size < 0)
 		size = 0;
 	//Allocate space
-	this->packet.Data = new char[size + 1];
+	this->packet.Data = new char[size];
 	//Copy data
-	strcpy(this->packet.Data, source);
+	std::memcpy(this->packet.Data, source, size);
 	//Set Packet Length
 	this->packet.header.Length = HEADERSIZE + size + CRCSIZE;
 }
@@ -124,13 +103,17 @@ bool PktDef::CheckCRC(char* source, int size) {
 void PktDef::CalcCRC() {
 	int PacketSize = this->packet.header.Length - CRCSIZE;
 	int BitSum = this->SumPacketBits(this->RawBuffer, PacketSize);
-	this->packet.CRC = BitSum;
+	// store as 1‑byte value, wrap if >255
+    packet.CRC = static_cast<unsigned char>(BitSum & 0xFF);
+
+    // write it into the serialised buffer
+    RawBuffer[PacketSize] = packet.CRC;
 }
 
 
 char* PktDef::GenPacket() {
 	//Get the size of the body
-	int BodySize = (this->packet.header.Drive) ? sizeof(DriveBody) : 0;
+    int BodySize = (packet.header.Flags & DRIVE_BIT) ? sizeof(DriveBody) : 0;
 	int TotalSize = HEADERSIZE + BodySize + CRCSIZE;
 
 	//Allocate space for full packet

@@ -4,11 +4,13 @@
 
 //C: initializes Winsock, the member variables, and creates the sockets
 MySocket::MySocket(SocketType type, std::string ip, unsigned int port, ConnectionType connType, unsigned int bufSize){
-    WSADATA wsaData;
-    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (result != 0) {
-        std::cerr << "Oops, WSAStartup failed with error code: " << result << std::endl;
-    }
+    #ifdef _WIN32
+        WSADATA wsaData;
+        int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (result != 0) {
+            std::cerr << "WSAStartup failed\n";
+        }
+    #endif
 
     //the member variables
     mySocket = type;
@@ -42,8 +44,8 @@ MySocket::MySocket(SocketType type, std::string ip, unsigned int port, Connectio
 
     ConnectionSocket = socket(AF_INET, sockType, protocol); //make the socket depending on the protocol
 
-    if (ConnectionSocket == INVALID_SOCKET)
-        std::cerr << "Oops, failed to create the connection socket: " << WSAGetLastError() << std::endl;
+    if (ConnectionSocket == INVALID_SOCKET) 
+        PRINT_SOCKET_ERROR("Oops, failed to create the connection socket");
 
     //set up the server address and whatnot
     memset(&SvrAddr, 0, sizeof(SvrAddr));
@@ -55,20 +57,20 @@ MySocket::MySocket(SocketType type, std::string ip, unsigned int port, Connectio
     if (mySocket == SERVER && connectionType == TCP) {
         WelcomeSocket = socket(AF_INET, sockType, IPPROTO_TCP);
         if (WelcomeSocket == INVALID_SOCKET) {
-            std::cerr << "Oops, failed to create the welcome socket: " << WSAGetLastError() << std::endl;
-            WSACleanup();
+            PRINT_SOCKET_ERROR("Oops, failed to create the welcome socket");
+            SOCKET_CLEANUP();
             return;
         }
         if (bind(WelcomeSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr)) == SOCKET_ERROR) {
-            std::cerr << "Oops, failed to bind socket: " << WSAGetLastError() << std::endl;
-            closesocket(WelcomeSocket);
-            WSACleanup();
+            PRINT_SOCKET_ERROR("Oops, failed to bind socket");
+            CLOSESOCKET(WelcomeSocket);
+            SOCKET_CLEANUP();
             return;
         }
         if (listen(WelcomeSocket, SOMAXCONN) == SOCKET_ERROR) {
-            std::cerr << "Oops, failed to listen : " << WSAGetLastError() << std::endl;
-            closesocket(WelcomeSocket);
-            WSACleanup();
+            PRINT_SOCKET_ERROR("Oops, failed to listen");
+            CLOSESOCKET(WelcomeSocket);
+            SOCKET_CLEANUP();
             return;
         }
     }
@@ -81,12 +83,12 @@ MySocket::~MySocket()
         delete[] Buffer;
     }
     if (ConnectionSocket != INVALID_SOCKET) {
-        closesocket(ConnectionSocket);
+        CLOSESOCKET(ConnectionSocket);
     }
     if (mySocket == SERVER && connectionType == TCP && WelcomeSocket != INVALID_SOCKET) {
-        closesocket(WelcomeSocket);
+        CLOSESOCKET(WelcomeSocket);
     }
-    WSACleanup();
+    SOCKET_CLEANUP();
 }
 
 //make a TCP connection for the clients
@@ -98,8 +100,8 @@ void MySocket::ConnectTCP()
     }
     int result = connect(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
     if (result == SOCKET_ERROR) {
-        std::cerr << "Oops, failed to connect: " << WSAGetLastError() << std::endl;
-        closesocket(ConnectionSocket);
+        PRINT_SOCKET_ERROR("Oops, failed to connect");
+        CLOSESOCKET(ConnectionSocket);
         ConnectionSocket = INVALID_SOCKET;
     }
     else {
@@ -113,7 +115,7 @@ void MySocket::DisconnectTCP()
     if (connectionType != TCP || !bTCPConnect)
         return;
 
-    closesocket(ConnectionSocket);
+    CLOSESOCKET(ConnectionSocket);
     ConnectionSocket = INVALID_SOCKET;
     bTCPConnect = false;
 }
@@ -124,15 +126,13 @@ void MySocket::SendData(const char* data, int length) {
 
     if (connectionType == TCP) {
         int result = send(ConnectionSocket, data, length, 0);
-        if (result == SOCKET_ERROR) {
-            std::cerr << "Oops, TCP send failed: " << WSAGetLastError() << std::endl;
-        }
+        if (result == SOCKET_ERROR)
+            PRINT_SOCKET_ERROR("Oops, tcp send failed");
     }
-    else { // and the UDP:
+    else {
         int result = sendto(ConnectionSocket, data, length, 0, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
-        if (result == SOCKET_ERROR) {
-            std::cerr << "Oops, UDP sendto failed: " << WSAGetLastError() << std::endl;
-        }
+        if (result == SOCKET_ERROR)
+            PRINT_SOCKET_ERROR("Oops, failed to sendto with UDP");
     }
 }
 
@@ -142,14 +142,14 @@ int MySocket::GetData(char* dest){
 
     int received = 0;
     if (connectionType == TCP) {
-        received = recv(ConnectionSocket, Buffer, MaxSize, 0);
-    } else { // UDP
-        int addrLen = sizeof(SvrAddr);
-        received = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (struct sockaddr*)&SvrAddr, &addrLen);
+        received = recv(ConnectionSocket, this->Buffer, MaxSize, 0);
+    } else {
+        addr_len addrLen = sizeof(SvrAddr);
+        received = recvfrom(ConnectionSocket, this->Buffer, MaxSize, 0, (struct sockaddr*)&SvrAddr, &addrLen);
     }
 
     if (received) {
-        memcpy(dest, Buffer, received);
+        memcpy(dest, this->Buffer, received);
     }
     return received;
 }

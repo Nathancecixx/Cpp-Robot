@@ -1,32 +1,43 @@
 #pragma once
 #include <iostream>
 #include <cstring>
+#include <cstdint> 
 
 #define FORWARD    1
 #define BACKWARD   2
 #define RIGHT	   3
 #define LEFT	   4
 
-#define HEADERSIZE 30
+#define HEADERSIZE sizeof(Header)
 #define CRCSIZE    1
 
-
+#pragma pack(push, 1) 
 struct Header {
-	unsigned int PktCount : 16;
-	unsigned int Drive : 1;
-	unsigned int Status : 1;
-	unsigned int Sleep : 1;
-	unsigned int Ack : 1;
-	unsigned int Padding : 4;
-	unsigned int Length : 16;
-};
+	uint16_t PktCount; // 2 bytes
 
+	uint8_t Flags;	// bit‑0 Drive
+					// bit‑1 Status
+					// bit‑2 Sleep
+					// bit‑3 Ack
+					// bit‑4..7 = 0
+
+	uint8_t Length; // 1 byte (total packet bytes)
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct DriveBody {
 	unsigned char Direction;
 	unsigned char Duration;
 	unsigned char Speed;
 };
+#pragma pack(pop)
 
+
+constexpr uint8_t DRIVE_BIT  = 0x01;
+constexpr uint8_t STATUS_BIT = 0x02;
+constexpr uint8_t SLEEP_BIT  = 0x04;
+constexpr uint8_t ACK_BIT    = 0x08;
 
 enum CmdType { DRIVE, SLEEP, RESPONSE };
 

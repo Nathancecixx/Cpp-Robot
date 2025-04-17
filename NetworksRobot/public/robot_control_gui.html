@@ -1,122 +1,229 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Robot Control Panel</title>
+  <title>Robot Command & Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      background: #f9f9f9;
-      color: #333;
+    :root {
+      /* theme */
+      --brand: #0066ff;
+      --brand-dark: #0047b3;
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --text: #222;
+      --muted: #666;
+      --radius: 8px;
+      --ease: 220ms ease;
     }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
     h1 {
       text-align: center;
-      color: #222;
+      margin: 1.2rem 0;
+      font-size: clamp(1.6rem, 3vw + 1rem, 2.2rem);
     }
+
     .container {
-      max-width: 600px;
-      margin: auto;
+      width: min(960px, 90%);
+      margin-inline: auto;
+      display: grid;
+      gap: 1.25rem;
     }
-    .form-group {
-      margin-bottom: 1rem;
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
     }
-    .form-group label {
+
+    .grid-2 {
+      display: grid;
+      gap: 0.75rem 1.25rem;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    label {
+      font-size: 0.875rem;
+      color: var(--muted);
       display: block;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
     }
-    .form-group input {
+
+    input,
+    select {
       width: 100%;
-      padding: 0.5rem;
-    }
-    button {
-      padding: 0.75rem 1.5rem;
-      margin: 0.5rem;
-      cursor: pointer;
-    }
-    .response {
-      margin-top: 2rem;
-      padding: 1rem;
-      background: #eef;
+      padding: 0.55rem 0.6rem;
       border: 1px solid #ccd;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    button {
+      border: none;
+      background: var(--brand);
+      color: #fff;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background var(--ease);
+    }
+
+    button:hover {
+      background: var(--brand-dark);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    #responseBox,
+    #telemetryBox {
+      white-space: pre-wrap;
+      background: #eef1ff;
+      border: 1px solid #dae1ff;
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.85rem;
+      min-height: 70px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Robot Command & Control</h1>
+  <h1>Robot Command & Control GUI</h1>
+  <main class="container">
+    <!-- Connection -->
+    <section class="card">
+      <h2>Connection</h2>
+      <div class="grid-2">
+        <div>
+          <label for="ip">Robot IP Address</label>
+          <input type="text" id="ip" placeholder="e.g. 192.168.0.10" />
+        </div>
+        <div>
+          <label for="port">Port</label>
+          <input type="number" id="port" placeholder="e.g. 8888" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top:1rem">
+        <button id="connectBtn">Connect</button>
+      </div>
+      <div id="responseBox">Not connected.</div>
+    </section>
 
-    <div class="form-group">
-      <label for="ip">Robot IP Address</label>
-      <input type="text" id="ip" placeholder="e.g. 192.168.0.10" />
-    </div>
-    <div class="form-group">
-      <label for="port">Robot Port</label>
-      <input type="number" id="port" placeholder="e.g. 5000" />
-    </div>
-    <button onclick="connect()">Connect</button>
+    <!-- Telecommand form -->
+    <section class="card">
+      <h2>Send Command</h2>
+      <div class="grid-2">
+        <div>
+          <label for="direction">Direction / Type</label>
+          <select id="direction">
+            <option value="FORWARD">FORWARD</option>
+            <option value="BACKWARD">BACKWARD</option>
+            <option value="LEFT">LEFT</option>
+            <option value="RIGHT">RIGHT</option>
+            <option value="SLEEP">SLEEP</option>
+          </select>
+        </div>
+        <div>
+          <label for="duration">Duration (s)</label>
+          <input type="number" id="duration" min="0" max="255" value="10" />
+        </div>
+        <div>
+          <label for="speed">Speed (80‑100 %)</label>
+          <input type="range" id="speed" min="80" max="100" value="90" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <span id="speedVal">90 %</span>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:1rem">
+        <button id="sendBtn">Send Command</button>
+      </div>
+    </section>
 
-    <h2>Drive Commands</h2>
-    <button onclick="sendCommand('FORWARD', 10)">Forward 10s</button>
-    <button onclick="sendCommand('BACKWARD', 50)">Backward 50s</button>
-    <button onclick="sendCommand('LEFT', 2)">Left 2s</button>
-    <button onclick="sendCommand('RIGHT', 90)">Right 90s</button>
-    <button onclick="sendSleep()">Sleep</button>
-
-    <h2>Telemetry</h2>
-    <button onclick="requestTelemetry()">Request Housekeeping</button>
-
-    <div class="response" id="response">System messages will appear here...</div>
-  </div>
+    <!-- Telemetry -->
+    <section class="card">
+      <h2>Telemetry</h2>
+      <div class="actions" style="margin-bottom:0.75rem">
+        <button id="telemetryBtn">Request Housekeeping</button>
+      </div>
+      <div id="telemetryBox">No telemetry yet.</div>
+    </section>
+  </main>
 
   <script>
-    async function connect() {
-      const ip = document.getElementById("ip").value;
-      const port = parseInt(document.getElementById("port").value);
-      const res = await fetch("/connect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ip, port }),
-      });
+    const $ = (id) => document.getElementById(id);
+
+    /* realtime value for speed slider */
+    $("speed").addEventListener("input", (e) => {
+      $("speedVal").textContent = `${e.target.value} %`;
+    });
+
+    async function api(path, method = "GET", body = null) {
+      const opts = { method, headers: { "Content-Type": "application/json" } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(path, opts);
       const text = await res.text();
-      document.getElementById("response").innerText = text;
+      return { ok: res.ok, status: res.status, text };
     }
 
-    async function sendCommand(direction, duration) {
-      const res = await fetch("/telecommand/", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ direction, duration }),
-      });
-      const text = await res.text();
-      document.getElementById("response").innerText = text;
-    }
-
-    async function sendSleep() {
-      const res = await fetch("/telecommand/", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ direction: "SLEEP", duration: 0 }),
-      });
-      const text = await res.text();
-      document.getElementById("response").innerText = text;
-    }
-
-    async function requestTelemetry() {
-      const res = await fetch("/telementry_request/");
-      if (!res.ok) {
-        document.getElementById("response").innerText = `Error: ${res.status}`;
+    // --- Connection ---
+    $("connectBtn").addEventListener("click", async () => {
+      const ip = $("ip").value.trim();
+      const port = parseInt($("port").value, 10);
+      if (!ip || !port) {
+        $("responseBox").textContent = "Please enter IP and port.";
         return;
       }
-  
-      // parse the JSON into an object
-      const data = await res.json();
-  
-      // pretty‑print with 2‑space indentation
-      document.getElementById("response").innerText =
-        JSON.stringify(data, null, 2);
-    }
+      const { ok, status, text } = await api("/connect", "POST", { ip, port });
+      $("responseBox").textContent = ok ? text : `Error ${status}: ${text}`;
+    });
+
+    // --- Telecommand ---
+    $("sendBtn").addEventListener("click", async () => {
+      const direction = $("direction").value;
+      const duration = parseInt($("duration").value, 10) || 0;
+      const speed = parseInt($("speed").value, 10);
+
+      const payload = { direction, duration, speed };
+      const { ok, status, text } = await api("/telecommand/", "PUT", payload);
+      $("responseBox").textContent = ok ? text : `Error ${status}: ${text}`;
+    });
+
+    // --- Telemetry ---
+    $("telemetryBtn").addEventListener("click", async () => {
+      const res = await fetch("/telementry_request/");
+      if (!res.ok) {
+        $("telemetryBox").textContent = `Error ${res.status}`;
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      $("telemetryBox").textContent = data ? JSON.stringify(data, null, 2) : "No telemetry returned.";
+    });
   </script>
 </body>
 </html>

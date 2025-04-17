@@ -29,7 +29,7 @@ int main() {
         std::ifstream file("../public/robot_control_gui.html");
         if (!file.is_open()) 
             return crow::response(500, "Failed to open robot_control_gui.html");
-        
+
         std::stringstream buffer;
         buffer << file.rdbuf();
         return crow::response{buffer.str()};
@@ -56,23 +56,36 @@ int main() {
 
         //Get the direction and duration from body
         auto json = crow::json::load(req.body);
-        std::string direction = json["direction"].s();
-        int duration = json["duration"].i();
+        std::string cmd = json["direction"].s();
+        int durationVal = json.has("duration") ? json["duration"].i() : 0;
+        int speedVal    = json.has("speed")    ? json["speed"].i()    : 90;
 
+        PktDef pkt;
+        pkt.SetPktCount(++pktCount);
         //Set the correcy body
         DriveBody body;
-        if (direction == "FORWARD") body.Direction = FORWARD;
-        else if (direction == "BACKWARD") body.Direction = BACKWARD;
-        else if (direction == "LEFT") body.Direction = LEFT;
-        else if (direction == "RIGHT") body.Direction = RIGHT;
-        body.Duration = duration;
-        body.Speed = 90;
+        if (cmd == "SLEEP") {
+            pkt.SetCmd(SLEEP);
+            pkt.SetBodyData(nullptr, 0);
+        } else {
+            DriveBody body{};
+            if      (cmd == "FORWARD")  body.Direction = FORWARD;
+            else if (cmd == "BACKWARD") body.Direction = BACKWARD;
+            else if (cmd == "LEFT")     body.Direction = LEFT;
+            else if (cmd == "RIGHT")    body.Direction = RIGHT;
+            else
+                return crow::response(400, "Unknown direction");
+    
+            body.Duration = static_cast<uint8_t>(durationVal);
+            body.Speed    = static_cast<uint8_t>(speedVal);
+    
+            pkt.SetCmd(DRIVE);
+            pkt.SetBodyData(reinterpret_cast<char*>(&body), sizeof(body));
+        }
+        body.Duration = durationVal;
+        body.Speed = speedVal;
 
         //Create packet to send
-        PktDef pkt;
-        pkt.SetCmd(DRIVE);
-        pkt.SetPktCount(++pktCount);
-        pkt.SetBodyData(reinterpret_cast<char*>(&body), sizeof(body));
         char* buffer = pkt.GenPacket();
         pkt.CalcCRC();
         udpSocket->SendData(buffer, pkt.GetLength());
@@ -100,6 +113,7 @@ int main() {
         //Skip over any ACK 
         do {
             bytes = udpSocket->GetData(recvBuffer);
+            //Invalid basic packet size
             if (bytes < HEADERSIZE + CRCSIZE){
                 res.code = 500;
                 return res.end();
